@@ -5,13 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.webrtc.ecl.ntt.com/skyway-latest.js"></script>
   <title>SkyWayチュートリアル</title>
+  <style>
+    h1.skyway_h1 {color: rgb(0, 0, 0); }
+
+    div.skyway {
+	width:700px;
+	float:left;
+	background-color:#ffffff;
+}
+
+div.cotoha_re {
+	width:500px;
+	float:left;
+	background-color:#ffffff;
+}
+
+    </style>
+
+
 </head>
+
 <body>
-  <div>
-    <input type="text" id="room-id" placeholder="ルームID">
-    <input type="text" id="user-name" placeholder="名前">
-    <button id="make-room">ルーム参加</button>
-  </div>
+  <div class="skyway">
+    <h1 class = "skyway_h1">SkyWay</h1>
+    <div>
+        <input type="text" id="room-id" placeholder="ルームID">
+        <input type="text" id="user-name" placeholder="名前">
+        <button id="make-room">ルーム参加</button>
+    </div>
+
+  
 
   <div>
     <pre class="messages" id="js-messages"></pre>
@@ -19,43 +42,53 @@
     <button id="js-send-trigger">メッセージ送信</button>
   </div>
 
+  <div>
+    <button id="display_share">画面共有</button>
+    <button id="display_video">ビデオ</button>
+  </div>
+
   
   <div class="remote-streams" id="js-remote-streams"></div>
   <video id="my-video" width="200px" autoplay muted playsinline></video>
 
+  </div>
+
+  <div class ="cotoha_re">
+    <h1 class = "cotoha_h1">COTOHA</h1>
+    <p>
+        Client id<br>
+        <input type="text" id="client_id" size="40" value="" placeholder="Client idを入力してください。"><br>
+        Client secret<br>
+        <input type="text" id="client_secret" size="30" value="" placeholder="Client secretを入力してください。"><br>
+        Domain id<br>
+        <input type="text" id="domain_id" size="25" value="" placeholder="Domain idを入力してください。">
+      </p>
+    
+      <p>
+        モデル選択<br>
+        <select id="model_name" size="1" required>
+            <option value="ja-gen_tf-16">ja-gen_tf-16</option>
+            <option value="ja-gen_sf-16" selected>ja-gen_sf-16</option>
+            <option value="ja-gen_tf-08">ja-gen_tf-08</option>
+            <option value="ja-mdl1_nrw-08">ja-mdl1_nrw-08</option>
+            <option value="ja-mdl2_nrw-08">ja-mdl2_nrw-08</option>
+            <option value="en_en-gen_sf-16">en_en-gen_sf-16</option>
+        </select>
+      </p>
+    
+      <button onClick="set_up()" class="setting_button">設定更新</button>
+    
+      <button onClick="speech_recognition()" class="start_button">認識開始</button>
+      <button onClick="stop_sst()" class="stop_button">認識停止</button>
+      <button onClick="cancel_sst()" class="cancel_button">認識キャンセル</button><br>
+    
+      <div id="condition">初期設定未完了</div>
+    
+      <pre class="messagess" id="js-messagess"></pre>
+    </div>
 
 
-
-  <p>
-    Client id<br>
-    <input type="text" id="client_id" size="40" value="" placeholder="Client idを入力してください。"><br>
-    Client secret<br>
-    <input type="text" id="client_secret" size="30" value="" placeholder="Client secretを入力してください。"><br>
-    Domain id<br>
-    <input type="text" id="domain_id" size="25" value="" placeholder="Domain idを入力してください。">
-  </p>
-
-  <p>
-    モデル選択<br>
-    <select id="model_name" size="1" required>
-        <option value="ja-gen_tf-16">ja-gen_tf-16</option>
-        <option value="ja-gen_sf-16" selected>ja-gen_sf-16</option>
-        <option value="ja-gen_tf-08">ja-gen_tf-08</option>
-        <option value="ja-mdl1_nrw-08">ja-mdl1_nrw-08</option>
-        <option value="ja-mdl2_nrw-08">ja-mdl2_nrw-08</option>
-        <option value="en_en-gen_sf-16">en_en-gen_sf-16</option>
-    </select>
-  </p>
-
-  <button onClick="set_up()" class="setting_button">設定更新</button>
-
-  <button onClick="speech_recognition()" class="start_button">認識開始</button>
-  <button onClick="stop_sst()" class="stop_button">認識停止</button>
-  <button onClick="cancel_sst()" class="cancel_button">認識キャンセル</button><br>
-
-  <div id="condition">初期設定未完了</div>
-
-  <pre class="messagess" id="js-messagess"></pre>
+  
 
 
   
@@ -63,11 +96,13 @@
 
  <script>
   let localStream;
+  let localStreams;
   let userName = "";
   const messages = document.getElementById('js-messages');
   const localText = document.getElementById('js-local-text');
   const sendButton = document.getElementById('js-send-trigger');
-
+  const shareButton = document.getElementById('display_share');
+  const videoButton = document.getElementById('display_video');
 
   //cotoha
   const messagess = document.getElementById('js-messagess');
@@ -80,6 +115,9 @@
 
   var access_token = null;
   var global_accecc_token = null;
+  var global_client_id = null;
+  var global_client_secret = null;
+  var global_domein_id = null;
   var domain_id = null;
   var model_name = null;
   var sampling_rate = null;
@@ -99,6 +137,7 @@
   var stream_file_name = null;
   var file_file_name = null;
 
+
   // カメラ映像取得
   navigator.mediaDevices.getUserMedia({video:true, audio: {echoCancellation : true,echoCancellationType :'system',noiseSuppression : false}})
     .then( stream => {
@@ -108,6 +147,8 @@
     videoElm.play();
     // 着信時に相手にカメラ映像を返せるように、グローバル変数に保存しておく
     localStream = stream;
+    localStreams = stream;
+    const vTracks = localStreams.getVideoTracks();
     //stream.getAudioTracks()[0].getSettings()
   }).catch( error => {
     // 失敗時にはエラーログを出力
@@ -156,13 +197,11 @@
       newVideo.srcObject = stream;
       newVideo.playsInline = true;
       newVideo.controls = true;
+      //messages.textContent += "tttttttt\n";
       // mark peerId to find it later at peerLeave event
       newVideo.setAttribute('data-peer-id', stream.peerId);
       document.getElementById('js-remote-streams').append(newVideo);
       newVideo.play().catch(console.error);
-
-     
-      
     });
 
     sendButton.onclick = () => {
@@ -173,17 +212,82 @@
     };
 
 
+    shareButton.onclick = () => {
+      navigator.mediaDevices.getDisplayMedia({video:true,audio:true})
+      .then( stream => {
+      // 成功時にvideo要素にカメラ映像をセットし、再生
+      const videoElm = document.getElementById('my-video');
+      videoElm.srcObject = stream;
+      videoElm.play();
+      // 着信時に相手にカメラ映像を返せるように、グローバル変数に保存しておく
+      //localStream = stream;
+      localStreams = stream;
+      //const vTracks = localStreams.getVideoTracks();
+      meshRoom.replaceStream(localStreams);
+      //stream.getAudioTracks()[0].getSettings()
+      }).catch( error => {
+     // 失敗時にはエラーログを出力
+     console.error('mediaDevice.getUserMedia() error:', error);
+     return;
+     });
+  
+    };
+
+    videoButton.onclick = () => {
+      navigator.mediaDevices.getUserMedia({video:true, audio: {echoCancellation : true,echoCancellationType :'system',noiseSuppression : false}})
+    .then( stream => {
+      // 成功時にvideo要素にカメラ映像をセットし、再生
+      const videoElm = document.getElementById('my-video');
+      videoElm.srcObject = stream;
+      videoElm.play();
+      // 着信時に相手にカメラ映像を返せるように、グローバル変数に保存しておく
+      //localStream = stream;
+      localStreams = stream;
+      //const vTracks = localStreams.getVideoTracks();
+      meshRoom.replaceStream(localStreams);
+      //stream.getAudioTracks()[0].getSettings()
+      }).catch( error => {
+     // 失敗時にはエラーログを出力
+     console.error('mediaDevice.getUserMedia() error:', error);
+     return;
+     });
+  
+    };
+
+
     meshRoom.on("data", ({ data, src }) => {
         if(data[0]=="{"&&data[1]=="}"){
-            global_accecc_token = data.substr(2);
+            var auth_data = data.substr(2);
+            var split_data = auth_data.split(",");
+            global_client_id = split_data[0];
+            global_client_secret = split_data[1];
+            global_domein_id = split_data[2];
+
             //messages.textContent += data;
-        }else{
+        }else if(data[0]=="{"&&data[1]=="1"&&data[2]=="}")
+        {
         //console.log(data);
-        messages.textContent += data;
+        messagess.textContent += data.substr(3);;
+        }else{
+            messages.textContent += data;
+
         }
    });
+
+   
+
    
   };
+
+
+
+  function send_message(data_recognition){
+    const data =`{1}${userName}: ${data_recognition}\n`;
+    
+    meshRoom.send(data);
+    messagess.textContent += data.substr(3);
+
+  }
 
 
 
@@ -205,10 +309,13 @@
         //access_token = ;
         console.log("tesssss");
         access_token = global_accecc_token;
+        client_id = global_client_id;
+        client_secret = global_client_secret;
+        domain_id = global_domein_id;
         console.log(access_token);
         condition.innerHTML = "音声認識開始前";
 
-    }else{
+    }
         var data = {"grantType":"client_credentials", "clientId":client_id, "clientSecret":client_secret};
         data = JSON.stringify(data);
         http_request(oauth_url, "post", "json", function(response_json){
@@ -222,7 +329,7 @@
 
         
         //const data =`${userName}: ${localText.value}\n`;
-        const data_access_token =`{}${access_token}`;
+        const data_access_token =`{}${client_id},${client_secret},${domain_id}`;
         //messages.textContent += data;
         meshRoom.send(data_access_token);
         //localText.value = "";
@@ -235,7 +342,7 @@
         //document.getElementById("dict_file").addEventListener("change", handle_dict_file_select, false);
     }, data);
 
-    }
+    
   }
 
   function http_request(url, method, response_type, callback, data = {}, callback_error = function(){}){
@@ -565,7 +672,8 @@ function speech_recognition(){
                                                     var result_json = recieve_message_json.result.sentence[0];
                                                     
                                                     
-                                                    messagess.textContent += result_json.surface + "\n";
+                                                    //messagess.textContent += result_json.surface + "\n";
+                                                    send_message(result_json.surface);
                                                     
                 
                                                     if(progress_flag){
@@ -586,10 +694,12 @@ function speech_recognition(){
                                                     for(var i = 0; i < recieve_message_json.result.sentence.length; i++){
                                                         var result_json = recieve_message_json.result.sentence[i];
                                                         if(i == 0){
-                                                            messagess.textContent += result_json.surface+ "\n";                                                   
+                                                            //messagess.textContent += result_json.surface+ "\n";
+                                                            send_message(result_json.surface);                                                   
                                                         }
                                                         else{
-                                                            messagess.textContent += result_json.surface+ "\n";
+                                                            //messagess.textContent += result_json.surface+ "\n";
+                                                            send_message(result_json.surface);
                                                             }
                                                     }
                                                 }                                                
@@ -793,6 +903,7 @@ function audio2int16(audio_buffer){
     return int_buffer;
 }
   
+
 
 
 
