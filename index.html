@@ -80,7 +80,7 @@ div.cotoha_re {
     
       <button onClick="speech_recognition()" class="start_button">認識開始</button>
       <button onClick="stop_sst()" class="stop_button">認識停止</button>
-      <button onClick="cancel_sst()" class="cancel_button">認識キャンセル</button><br>
+
     
       <div id="condition">初期設定未完了</div>
     
@@ -300,7 +300,7 @@ div.cotoha_re {
     condition = document.getElementById("condition");
     start_button = document.getElementsByClassName("start_button");
     stop_button = document.getElementsByClassName("stop_button");
-    cancel_button = document.getElementsByClassName("cancel_button");
+    //cancel_button = document.getElementsByClassName("cancel_button");
     //dict_button = document.getElementsByClassName("dict_button");
 
     
@@ -642,13 +642,13 @@ function speech_recognition(){
                                             audio_processor.connect(audio_context.destination);
                                             condition.innerHTML = "音声認識中(マイク入力)";
                                             able_button(stop_button);
-                                            able_button(cancel_button);
+                                            //able_button(cancel_button);
                                             //result_list.appendChild(start_line);
                                         
                                     }
                                     else{
                                         condition.innerHTML = "音声認識中(ファイル入力)";
-                                        able_button(cancel_button);
+                                        //able_button(cancel_button);
                                         //result_list.appendChild(start_line);
                                     }
                                     break;
