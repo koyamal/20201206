@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.webrtc.ecl.ntt.com/skyway-latest.js"></script>
-  <title>SkyWay&COTOHA</title>
+  <title>SkyWayチュートリアル</title>
   <style>
     h1.skyway_h1 {color: rgb(0, 0, 0); }
 
@@ -80,7 +80,7 @@ div.cotoha_re {
     
       <button onClick="speech_recognition()" class="start_button">認識開始</button>
       <button onClick="stop_sst()" class="stop_button">認識停止</button>
-
+      
     
       <div id="condition">初期設定未完了</div>
     
@@ -136,6 +136,7 @@ div.cotoha_re {
   var asr_count = 0;
   var stream_file_name = null;
   var file_file_name = null;
+  var room_once =false;
 
 
   // カメラ映像取得
@@ -176,12 +177,16 @@ div.cotoha_re {
   document.getElementById('make-room').onclick = () => {
     const roomID = document.getElementById('room-id').value;
     const roomOptions = {mode:"mesh",stream:localStream};
-    meshRoom = peer.joinRoom(roomID,roomOptions);
-    meshRoom.on("open", () => {
+
+    if(!room_once){
+        meshRoom = peer.joinRoom(roomID,roomOptions);
+        meshRoom.on("open", () => {
       //document.getElementById('data-text').value="room start";
-    });
-    userName = document.getElementById('user-name').value;
-    setEventListener(meshRoom);   
+      });
+      room_once = true;
+      userName = document.getElementById('user-name').value;
+      setEventListener(meshRoom);   
+    }
   };
   
 //const remoteVideos = document.getElementById('js-remote-streams');
@@ -193,6 +198,7 @@ div.cotoha_re {
     //  videoElm.srcObject = stream;
     //  videoElm.play();
     meshRoom.on('stream', stream => {
+      console.log("recieve stream");
       const newVideo = document.createElement('video');
       newVideo.srcObject = stream;
       newVideo.playsInline = true;
@@ -234,23 +240,18 @@ div.cotoha_re {
     };
 
     videoButton.onclick = () => {
-      navigator.mediaDevices.getUserMedia({video:true, audio: {echoCancellation : true,echoCancellationType :'system',noiseSuppression : false}})
-    .then( stream => {
+      
       // 成功時にvideo要素にカメラ映像をセットし、再生
       const videoElm = document.getElementById('my-video');
-      videoElm.srcObject = stream;
+      videoElm.srcObject = localStream;
       videoElm.play();
       // 着信時に相手にカメラ映像を返せるように、グローバル変数に保存しておく
       //localStream = stream;
-      localStreams = stream;
+      //localStreams = stream;
       //const vTracks = localStreams.getVideoTracks();
-      meshRoom.replaceStream(localStreams);
+      meshRoom.replaceStream(localStream);
       //stream.getAudioTracks()[0].getSettings()
-      }).catch( error => {
-     // 失敗時にはエラーログを出力
-     console.error('mediaDevice.getUserMedia() error:', error);
-     return;
-     });
+      
   
     };
 
@@ -648,7 +649,7 @@ function speech_recognition(){
                                     }
                                     else{
                                         condition.innerHTML = "音声認識中(ファイル入力)";
-                                        //able_button(cancel_button);
+                                       // able_button(cancel_button);
                                         //result_list.appendChild(start_line);
                                     }
                                     break;
